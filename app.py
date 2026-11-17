@@ -24,7 +24,7 @@ app = FastAPI()
 # CORS настройки
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://spec-crafted-world.lovable.app"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,11 +55,6 @@ async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=500,
         content={"status": "error", "message": f"Внутренняя ошибка сервера: {str(exc)}"},
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "*",
-            "Access-Control-Allow-Headers": "*",
-        },
     )
 
 # --- Конфигурация OpenAI ---
@@ -219,8 +214,8 @@ def analyze_dialogue(client: OpenAI, dialogue_text: str, criteria: List[str]) ->
     raise RuntimeError(f"Analysis failed for all models. Last error: {last_err}")
 
 # --- Асинхронная обработка задачи ---
-async def process_analysis_task(task_id: str, upload_file: Optional[UploadFile], text_input: Optional[str], criteria: List[str]):
-    """Фоновая функция для тяжелой обработки"""
+def process_analysis_task(task_id: str, audio_bytes: Optional[bytes], filename: Optional[str], text_input: Optional[str], criteria: List[str]):
+    """Синхронная обработка; вызывается в отдельном потоке."""
     tmp_dir = None
     try:
         tasks[task_id]["status"] = "processing"
@@ -232,8 +227,8 @@ async def process_analysis_task(task_id: str, upload_file: Optional[UploadFile],
         dialogue_text = ""
         
         # Обработка аудио
-        if upload_file:
-            filename = getattr(upload_file, "filename", "") or "audio"
+        if audio_bytes is not None:
+            filename = filename or "audio"
             ext = os.path.splitext(filename.lower())[1]
             logging.info(f"[{task_id}] 🎧 Audio received: {filename}")
             
@@ -242,9 +237,8 @@ async def process_analysis_task(task_id: str, upload_file: Optional[UploadFile],
             wav_path = os.path.join(tmp_dir, "audio.wav")
             
             # Сохранение файла
-            file_bytes = await upload_file.read()
             with open(src_path, "wb") as f:
-                f.write(file_bytes)
+                f.write(audio_bytes)
             
             # Конвертация
             logging.info(f"[{task_id}] 🔧 Converting audio to WAV...")
@@ -321,11 +315,15 @@ async def analyze(
         "created_at": time.time()
     }
     
-    # Запускаем обработку в фоне
-    # Важно: передаем копию файла или читаем его здесь, 
-    # так как request может закрыться. Но UploadFile читается асинхронно.
-    # Мы передаем объект upload_file напрямую в корутину.
-    asyncio.create_task(process_analysis_task(task_id, file, text, crit_list))
+    # Считываем загрузку до ответа: FastAPI закроет UploadFile после запроса.
+    audio_bytes = await file.read() if file else None
+    filename = file.filename if file else None
+
+    # Обработка OpenAI и ffmpeg выполняется в отдельном потоке,
+    # чтобы приложение продолжало отвечать на запросы статуса.
+    asyncio.create_task(asyncio.to_thread(
+        process_analysis_task, task_id, audio_bytes, filename, text, crit_list
+    ))
     
     return JSONResponse(
         status_code=202,
