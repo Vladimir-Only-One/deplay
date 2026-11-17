@@ -332,6 +332,12 @@ async def analyze(request: Request):
     return JSONResponse(status_code=200, content={"status": "ok", "analysis": analysis_text})
 
 
+@app.api_route("/", methods=["GET", "POST"])
+async def root_handler(request: Request):
+    if request.method == "POST":
+        return await analyze(request)
+    return {"status": "ok", "message": "API is running. Send POST request to /analyze"}
+
 # 👇 ДОБАВЛЯЕМ ЭТОТ БЛОК, ЧТОБЫ УБРАТЬ ОШИБКУ 404 НА ГЛАВНОЙ СТРАНИЦЕ
 @app.get("/")
 def read_root():
