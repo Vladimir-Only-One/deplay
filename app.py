@@ -332,7 +332,12 @@ async def analyze(request: Request):
     return JSONResponse(status_code=200, content={"status": "ok", "analysis": analysis_text})
 
 
-# Блок для локального запуска (не используется платформой Amvera)
+# 👇 ДОБАВЛЯЕМ ЭТОТ БЛОК, ЧТОБЫ УБРАТЬ ОШИБКУ 404 НА ГЛАВНОЙ СТРАНИЦЕ
+@app.get("/")
+def read_root():
+    return {"status": "ok", "message": "API is running. Send POST request to /analyze"}
+
+# Блок для локального запуска
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", "8000"))
