@@ -23,7 +23,7 @@ app = FastAPI()
 # CORS for browser frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://id-preview--6e1ca411-3159-42dc-b3fd-e23b0da121aa.lovable.app"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
