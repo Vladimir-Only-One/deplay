@@ -18,4 +18,4 @@ COPY . .
 EXPOSE 80
 
 # Команда для запуска вашего FastAPI-приложения через uvicorn
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80", "--timeout-keep-alive", "120"]
