@@ -338,11 +338,6 @@ async def root_handler(request: Request):
         return await analyze(request)
     return {"status": "ok", "message": "API is running. Send POST request to /analyze"}
 
-# 👇 ДОБАВЛЯЕМ ЭТОТ БЛОК, ЧТОБЫ УБРАТЬ ОШИБКУ 404 НА ГЛАВНОЙ СТРАНИЦЕ
-@app.get("/")
-def read_root():
-    return {"status": "ok", "message": "API is running. Send POST request to /analyze"}
-
 # Блок для локального запуска
 if __name__ == "__main__":
     import uvicorn
