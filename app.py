@@ -20,14 +20,29 @@ logging.basicConfig(
 
 app = FastAPI()
 
-# CORS for browser frontend
+# 1. ИСПРАВЛЕНО: Разрешаем запросы с любых доменов (включая все версии Lovable)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://id-preview--6e1ca411-3159-42dc-b3fd-e23b0da121aa.lovable.app"],
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 2. ДОБАВЛЕНО: Перехватчик ошибок. Если сервер упадет (ошибка 500), он вернет CORS-заголовки,
+# и вы увидите реальную причину в Lovable, а не "заблокировано CORS".
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logging.error(f"Необработанная ошибка: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"status": "error", "message": f"Внутренняя ошибка сервера: {str(exc)}"},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        },
+    )
 
 # Ключ читается только из переменной окружения UI_OPENAI_KEY
 _OPENAI_KEY = os.environ.get("UI_OPENAI_KEY")
