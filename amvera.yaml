@@ -8,6 +8,5 @@ run:
   command: uvicorn app:app --host 0.0.0.0 --port 80
   containerPort: 80
 
-# Добавляем эту секцию для настройки Nginx
 nginx:
   client_max_body_size: 50M
